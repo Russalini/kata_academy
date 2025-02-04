@@ -29,8 +29,6 @@ func main() {
 
 func calculator(stroka string) (string, error) {
 
-	stroka = strings.ReplaceAll(stroka, " ", "")
-
 	if stroka[0] != '"' {
 		panic("Первым аргументом должна быть строка.")
 	}
@@ -39,16 +37,16 @@ func calculator(stroka string) (string, error) {
 	var buffer strings.Builder
 	Kavychki := false
 
-	for _, char := range stroka {
-		if char == '"' {
+	for _, znak := range stroka {
+		if znak == '"' {
 			Kavychki = !Kavychki
 		}
-		if !Kavychki && (char == '+' || char == '-' || char == '*' || char == '/') {
+		if !Kavychki && (znak == '+' || znak == '-' || znak == '*' || znak == '/') {
 			parts = append(parts, buffer.String())
-			parts = append(parts, string(char))
+			parts = append(parts, string(znak))
 			buffer.Reset()
 		} else {
-			buffer.WriteRune(char)
+			buffer.WriteRune(znak)
 		}
 	}
 	parts = append(parts, buffer.String())
@@ -58,43 +56,52 @@ func calculator(stroka string) (string, error) {
 	}
 
 	left, op, right := parts[0], parts[1], parts[2]
+	var leftCH, rightCH string
+	dleft := len(left)
+	for i := 0; i < dleft-1; i++ {
+		leftCH += string(left[i])
+	}
+	dright := len(right)
+	for i := 1; i < dright; i++ {
+		rightCH += string(right[i])
+	}
 
-	if left[0] != '"' || left[len(left)-1] != '"' {
+	if leftCH[0] != '"' || leftCH[len(leftCH)-1] != '"' {
 		panic("Левый аргумент должен быть строкой.")
 	}
-	left = left[1 : len(left)-1]
+	leftCH = leftCH[1 : len(leftCH)-1]
 
 	switch op {
 	case "+":
-		if right[0] != '"' || right[len(right)-1] != '"' {
+		if rightCH[0] != '"' || rightCH[len(rightCH)-1] != '"' {
 			panic("Правый аргумент должен быть строкой.")
 		}
-		right = right[1 : len(right)-1]
-		return plusStroka(left, right), nil
+		rightCH = rightCH[1 : len(rightCH)-1]
+		return plusStroka(leftCH, rightCH), nil
 	case "-":
-		if right[0] != '"' || right[len(right)-1] != '"' {
+		if rightCH[0] != '"' || rightCH[len(rightCH)-1] != '"' {
 			panic("Правый аргумент должен быть строкой.")
 		}
-		right = right[1 : len(right)-1]
-		return minusStroka(left, right), nil
+		rightCH = rightCH[1 : len(rightCH)-1]
+		return minusStroka(leftCH, rightCH), nil
 	case "*":
-		if right[0] == '"' && right[len(right)-1] == '"' {
+		if rightCH[0] == '"' && rightCH[len(rightCH)-1] == '"' {
 			panic("Правый аргумент должен быть числом, а не строкой.")
 		}
-		n, err := strconv.Atoi(right)
+		n, err := strconv.Atoi(rightCH)
 		if err != nil || n < 1 || n > 10 {
 			panic("Правый аргумент должен быть числом от 1 до 10.")
 		}
-		return umnojStroka(left, n), nil
+		return umnojStroka(leftCH, n), nil
 	case "/":
-		if right[0] == '"' && right[len(right)-1] == '"' {
+		if rightCH[0] == '"' && rightCH[len(rightCH)-1] == '"' {
 			panic("Правый аргумент должен быть числом, а не строкой.")
 		}
-		n, err := strconv.Atoi(right)
+		n, err := strconv.Atoi(rightCH)
 		if err != nil || n < 1 || n > 10 {
 			panic("Правый аргумент должен быть числом от 1 до 10.")
 		}
-		return delenieStroka(left, n), nil
+		return delenieStroka(leftCH, n), nil
 	default:
 		panic("Неподдерживаемая операция.")
 	}

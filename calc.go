@@ -1,95 +1,132 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 )
 
-func plus_stroka(a, b string) string {
-	cnt := 0
-	if len(a) > 10 || len(b) > 10 {
-		panic("Ошибка: строки не может быть больше 10 символов")
-	}
-	_, err := strconv.Atoi(a)
-	if err == nil {
-		cnt++
-	}
-	_, err2 := strconv.Atoi(b)
-	if err2 != nil && cnt > 0 {
-		panic("Первая строка не может быть числом!")
-	} else {
-		return strconv.Quote(a + b)
-	}
-}
-
-func minus_stroka(a, b string) string {
-	cnt := 0
-	if len(a) > 10 || len(b) > 10 {
-		panic("Ошибка: строки не может быть больше 10 символов")
-	}
-	_, err := strconv.Atoi(a)
-	if err == nil {
-		cnt++
-	}
-	_, err2 := strconv.Atoi(b)
-	if err2 != nil && cnt > 0 {
-		panic("Первая строка не может быть числом!")
-	} else {
-		return strconv.Quote(strings.Replace(a, b, "", -1))
-	}
-}
-
-func umnoj_stroka(a string, n int) string {
-	if len(a) > 10 {
-		panic("Ошибка: строки не может быть больше 10 символов")
-	}
-	if n > 0 && n < 11 {
-		return strconv.Quote(strings.Repeat(a, n))
-	} else {
-		panic("Ошибка: число может только принадлежать отрезку от 0 до 10 включительно.")
-	}
-}
-
-func delenie_stroka(a string, n int) string {
-	if len(a) > 10 {
-		panic("Ошибка: строки не может быть больше 10 символов")
-	}
-	if n > 0 && n < 11 {
-		return strconv.Quote(a[:len(a)/n])
-	} else {
-		panic("Ошибка: число может только принадлежать отрезку от 0 до 10 включительно.")
-	}
-}
-
 func main() {
-	args := os.Args[1:]
-	if len(args) != 3 {
-		panic("Ошибка ввода. В случае умножения - используйте (x) вместо (*)")
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Введите пример:")
+
+	if scanner.Scan() {
+		expression := scanner.Text()
+		result, err := calculator(expression)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("Результат: %q\n", result)
 	}
 
-	str := args[0]
-	op := args[1]
-	num, _ := strconv.Atoi(args[2])
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "Ошибка при чтении ввода:", err)
+	}
+}
 
-	var result string
+func calculator(stroka string) (string, error) {
+
+	stroka = strings.ReplaceAll(stroka, " ", "")
+
+	if stroka[0] != '"' {
+		panic("Первым аргументом должна быть строка.")
+	}
+
+	var parts []string
+	var buffer strings.Builder
+	Kavychki := false
+
+	for _, char := range stroka {
+		if char == '"' {
+			Kavychki = !Kavychki
+		}
+		if !Kavychki && (char == '+' || char == '-' || char == '*' || char == '/') {
+			parts = append(parts, buffer.String())
+			parts = append(parts, string(char))
+			buffer.Reset()
+		} else {
+			buffer.WriteRune(char)
+		}
+	}
+	parts = append(parts, buffer.String())
+
+	if len(parts) != 3 {
+		panic("Неподдерживаемое выражение.")
+	}
+
+	left, op, right := parts[0], parts[1], parts[2]
+
+	if left[0] != '"' || left[len(left)-1] != '"' {
+		panic("Левый аргумент должен быть строкой.")
+	}
+	left = left[1 : len(left)-1]
+
 	switch op {
 	case "+":
-		result = plus_stroka(str, args[2])
+		if right[0] != '"' || right[len(right)-1] != '"' {
+			panic("Правый аргумент должен быть строкой.")
+		}
+		right = right[1 : len(right)-1]
+		return plusStroka(left, right), nil
 	case "-":
-		result = minus_stroka(str, args[2])
-	case "x":
-		result = umnoj_stroka(str, num)
+		if right[0] != '"' || right[len(right)-1] != '"' {
+			panic("Правый аргумент должен быть строкой.")
+		}
+		right = right[1 : len(right)-1]
+		return minusStroka(left, right), nil
+	case "*":
+		if right[0] == '"' && right[len(right)-1] == '"' {
+			panic("Правый аргумент должен быть числом, а не строкой.")
+		}
+		n, err := strconv.Atoi(right)
+		if err != nil || n < 1 || n > 10 {
+			panic("Правый аргумент должен быть числом от 1 до 10.")
+		}
+		return umnojStroka(left, n), nil
 	case "/":
-		result = delenie_stroka(str, num)
+		if right[0] == '"' && right[len(right)-1] == '"' {
+			panic("Правый аргумент должен быть числом, а не строкой.")
+		}
+		n, err := strconv.Atoi(right)
+		if err != nil || n < 1 || n > 10 {
+			panic("Правый аргумент должен быть числом от 1 до 10.")
+		}
+		return delenieStroka(left, n), nil
 	default:
-		panic("Операция не распознана. Используйте что-то одно из этого: +, -, x, /")
+		panic("Неподдерживаемая операция.")
 	}
+}
 
-	if len(result) > 40 {
-		result = result[:40] + "..."
+func plusStroka(a, b string) string {
+	result := a + b
+	return sorok(result)
+}
+
+func minusStroka(a, b string) string {
+	result := strings.Replace(a, b, "", 1)
+	return sorok(result)
+}
+
+func umnojStroka(a string, n int) string {
+	result := strings.Repeat(a, n)
+	return sorok(result)
+}
+
+func delenieStroka(a string, n int) string {
+	length := len(a) / n
+	if length == 0 {
+		return ""
 	}
+	result := a[:length]
+	return sorok(result)
+}
 
-	fmt.Println(result)
+func sorok(s string) string {
+	if len(s) > 40 {
+		return s[:40] + "..."
+	}
+	return s
 }
